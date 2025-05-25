@@ -1,0 +1,323 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <title>เว็บคำนวณ</title>
+  <style>
+    body {
+      font-family: 'Segoe UI', sans-serif;
+      background: linear-gradient(to right, #0f2027, #203a43, #2c5364);
+      color: #fff;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      flex-direction: column;
+      height: 100vh;
+      margin: 0;
+    }
+
+    .calculator, .area-calc {
+      background: rgba(255, 255, 255, 0.05);
+      padding: 30px;
+      border-radius: 20px;
+      backdrop-filter: blur(8px);
+      box-shadow: 0 8px 16px rgba(0,0,0,0.4);
+      margin: 10px;
+      width: 300px;
+    }
+
+    select, input, button {
+      width: 100%;
+      margin: 10px 0;
+      padding: 10px;
+      border-radius: 10px;
+      border: none;
+      font-size: 1em;
+    }
+
+    button {
+      background: #0ff;
+      color: #000;
+      font-weight: bold;
+      box-shadow: 0 0 10px rgb(255, 253, 253);
+      cursor: pointer;
+      transition: 0.3s;
+    }
+
+    button:hover {
+      background: #00f0ff;
+      box-shadow: 0 0 20px #00f0ff;
+    }
+
+    .result {
+      margin-top: 15px;
+      font-weight: bold;
+      color: #0f0;
+    }
+
+    /* เครื่องคิดเลข */
+    #calculator-popup {
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      background: rgba(255, 255, 255, 0.05);
+      backdrop-filter: blur(10px);
+      padding: 20px;
+      border-radius: 20px;
+      box-shadow: 0 0 20px rgba(0,255,255,0.6);
+      display: none;
+      z-index: 999;
+    }
+
+    #calculator-display {
+      width: 100%;
+      height: 40px;
+      text-align: right;
+      font-size: 1.2em;
+      margin-bottom: 10px;
+      padding: 1px;
+      background: #000000;
+      color: #0ff;
+      border-radius: 10px;
+    }
+
+    .calc-buttons {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 10px;
+    }
+
+    .calc-buttons button {
+      font-size: 1.2em;
+      padding: 15px;
+      border-radius: 10px;
+    }
+    #calculator-popup {
+  transition: top 0.1s, left 0.1s;
+}
+
+  </style>
+</head>
+<body>
+<a href="ii.html"><button>mapthai</button></a>
+  <div class="area-calc">
+    <h2>คำนวณพื้นที่ / ปริมาตร</h2>
+    <select id="shape" onchange="updateInputs()">
+      <option value="square">สี่เหลี่ยมจัตุรัส</option>
+      <option value="rectangle">สี่เหลี่ยมผืนผ้า</option>
+      <option value="triangle">สามเหลี่ยม</option>
+      <option value="cube">ลูกบาศก์</option>
+      <option value="pyramid">พีระมิด</option>
+    </select>
+         <select id="unit">
+  <option value="cm">เซนติเมตร (cm)</option>
+  <option value="mm">มิลลิเมตร (mm)</option>
+  <option value="m">เมตร (m)</option>
+    </select>
+    <div id="inputs"></div>
+    <button onclick="calculate()">คำนวณ</button>
+    <div class="result" id="result"></div>
+    <button onclick="openCalculator()">📟 เครื่องคิดเลข</button>
+  </div>
+
+  <!-- เครื่องคิดเลข Popup -->
+  <div id="calculator-popup">
+    <input type="text" id="calculator-display" disabled>
+    <div class="calc-buttons">
+      <button onclick="appendCalc('7')">7</button>
+      <button onclick="appendCalc('8')">8</button>
+      <button onclick="appendCalc('9')">9</button>
+      <button onclick="appendCalc('/')">÷</button>
+
+      <button onclick="appendCalc('4')">4</button>
+      <button onclick="appendCalc('5')">5</button>
+      <button onclick="appendCalc('6')">6</button>
+      <button onclick="appendCalc('*')">×</button>
+
+      <button onclick="appendCalc('1')">1</button>
+      <button onclick="appendCalc('2')">2</button>
+      <button onclick="appendCalc('3')">3</button>
+      <button onclick="appendCalc('-')">−</button>
+
+      <button onclick="appendCalc('0')">0</button>
+      <button onclick="appendCalc('.')">.</button>
+      <button onclick="calculateCalc()">=</button>
+      <button onclick="appendCalc('+')">+</button>
+
+      <button onclick="clearCalc()" style="grid-column: span 4;">ล้าง</button>
+      <button onclick="closeCalculator()" style="grid-column: span 4; background:#f00;color:white;">❌ ออก</button>
+    </div>
+  </div>
+
+  <script>
+    function updateInputs() {
+      const shape = document.getElementById('shape').value;
+      let html = '';
+      if (shape === 'square') {
+        html = '<input type="number" id="side" placeholder="ความยาวด้าน">';
+      } else if (shape === 'rectangle') {
+        html = `
+          <input type="number" id="width" placeholder="ความกว้าง">
+          <input type="number" id="height" placeholder="ความยาว">
+        `;
+      } else if (shape === 'triangle') {
+        html = `
+          <input type="number" id="base" placeholder="ฐาน">
+          <input type="number" id="height" placeholder="สูง">
+        `;
+      } else if (shape === 'cube') {
+        html = '<input type="number" id="side" placeholder="ความยาวด้าน">';
+      } else if (shape === 'pyramid') {
+        html = `
+          <input type="number" id="base" placeholder="ความกว้างฐาน">
+          <input type="number" id="height" placeholder="สูงพีระมิด">
+        `;
+      }
+      document.getElementById('inputs').innerHTML = html;
+      document.getElementById('result').innerText = '';
+    }
+    // ทำให้ calculator-popup ลากได้
+dragElement(document.getElementById("calculator-popup"));
+
+function dragElement(elmnt) {
+  const header = document.getElementById("calculator-header");
+  let pos1 = 0, pos2 = 0, pos3 = 0, pos4 = 0;
+
+  if (header) {
+    header.onmousedown = dragMouseDown;
+  } else {
+    elmnt.onmousedown = dragMouseDown;
+  }
+
+  function dragMouseDown(e) {
+    e = e || window.event;
+    e.preventDefault();
+    // ตำแหน่งเมาส์เริ่มต้น
+    pos3 = e.clientX;
+    pos4 = e.clientY;
+    document.onmouseup = closeDragElement;
+    document.onmousemove = elementDrag;
+  }
+
+  function elementDrag(e) {
+    e = e || window.event;
+    e.preventDefault();
+    // คำนวณตำแหน่งใหม่
+    pos1 = pos3 - e.clientX;
+    pos2 = pos4 - e.clientY;
+    pos3 = e.clientX;
+    pos4 = e.clientY;
+    // ตั้งค่าตำแหน่งใหม่ให้กับ popup
+    elmnt.style.top = (elmnt.offsetTop - pos2) + "px";
+    elmnt.style.left = (elmnt.offsetLeft - pos1) + "px";
+  }
+
+  function closeDragElement() {
+    document.onmouseup = null;
+    document.onmousemove = null;
+  }
+}
+
+
+    function calculate() {
+      const shape = document.getElementById('shape').value;
+      let result = 0;
+
+      if (shape === 'square') {
+        const side = parseFloat(document.getElementById('side').value);
+        result = side * side;
+      } else if (shape === 'rectangle') {
+        const w = parseFloat(document.getElementById('width').value);
+        const h = parseFloat(document.getElementById('height').value);
+        result = w * h;
+      } else if (shape === 'triangle') {
+        const b = parseFloat(document.getElementById('base').value);
+        const h = parseFloat(document.getElementById('height').value);
+        result = 0.5 * b * h;
+      } else if (shape === 'cube') {
+        const side = parseFloat(document.getElementById('side').value);
+        result = Math.pow(side, 3);
+      } else if (shape === 'pyramid') {
+        const base = parseFloat(document.getElementById('base').value);
+        const height = parseFloat(document.getElementById('height').value);
+        result = (1 / 3) * (base * base) * height;
+      }
+
+      const unit = shape === 'cube' || shape === 'pyramid' ? "ลูกบาศก์หน่วย" : "ตร.หน่วย";
+      document.getElementById('result').innerText = `ผลลัพธ์ = ${result.toFixed(2)} ${unit}`;
+    }
+
+    // เครื่องคิดเลข
+    function openCalculator() {
+      document.getElementById('calculator-popup').style.display = 'block';
+    }
+
+    function closeCalculator() {
+      document.getElementById('calculator-popup').style.display = 'none';
+    }
+
+    function appendCalc(value) {
+      const display = document.getElementById('calculator-display');
+      display.value += value;
+    }
+
+    function clearCalc() {
+      document.getElementById('calculator-display').value = '';
+    }
+
+    function calculateCalc() {
+      const display = document.getElementById('calculator-display');
+      try {
+        display.value = eval(display.value);
+      } catch (e) {
+        display.value = 'Error';
+      }
+    }
+
+    updateInputs();
+    function calculate() {
+  const shape = document.getElementById('shape').value;
+  const unit = document.getElementById('unit').value;
+  let result = 0;
+
+  const unitLabelMap = {
+    cm: 'เซนติเมตร',
+    mm: 'มิลลิเมตร',
+    m: 'เมตร'
+  };
+
+  const squared = `ตร.${unitLabelMap[unit]}`;
+  const cubed = `ลูกบาศก์${unitLabelMap[unit]}`;
+
+  if (shape === 'square') {
+    const side = parseFloat(document.getElementById('side').value);
+    result = side * side;
+    unitText = squared;
+  } else if (shape === 'rectangle') {
+    const w = parseFloat(document.getElementById('width').value);
+    const h = parseFloat(document.getElementById('height').value);
+    result = w * h;
+    unitText = squared;
+  } else if (shape === 'triangle') {
+    const b = parseFloat(document.getElementById('base').value);
+    const h = parseFloat(document.getElementById('height').value);
+    result = 0.5 * b * h;
+    unitText = squared;
+  } else if (shape === 'cube') {
+    const side = parseFloat(document.getElementById('side').value);
+    result = Math.pow(side, 3);
+    unitText = cubed;
+  } else if (shape === 'pyramid') {
+    const base = parseFloat(document.getElementById('base').value);
+    const height = parseFloat(document.getElementById('height').value);
+    result = (1 / 3) * (base * base) * height;
+    unitText = cubed;
+  }
+
+  document.getElementById('result').innerText = `ผลลัพธ์ = ${result.toFixed(2)} ${unitText}`;
+}
+
+  </script>
+</body>
+</html>  

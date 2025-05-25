@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <title>Map Thai Advance</title>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
+  <style>
+    body {
+      font-family: 'Segoe UI', sans-serif;
+      background: linear-gradient(to right, #000000, #501919, #be1414);
+      color: #fff;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      flex-direction: column;
+      height: 100vh;
+      margin: 0;
+    }
+
+    select, input, button {
+      width: 100%;
+      max-width: 300px;
+      margin: 5px 0;
+      padding: 10px;
+      border-radius: 10px;
+      border: none;
+      font-size: 1em;
+    }
+
+    button {
+      background: rgb(255, 0, 0);
+      color: #000;
+      font-weight: bold;
+      box-shadow: 0 0 10px rgb(255, 255, 255);
+      cursor: pointer;
+      transition: 0.3s;
+    }
+
+    button:hover {
+      background: #ff0000;
+      box-shadow: 0 0 20px #ff0000;
+    }
+
+    #mapSection {
+      width: 100%;
+      max-width: 800px;
+      display: none;
+      flex-direction: column;
+      align-items: center;
+    }
+
+    #map {
+      height: 400px;
+      width: 100%;
+      margin-top: 10px;
+      border-radius: 10px;
+    }
+
+    #result {
+      margin-top: 10px;
+      font-weight: bold;
+      text-align: center;
+    }
+  </style>
+</head>
+<body>
+  <a href="index.html"><button>คำนวณ</button></a>
+  <button onclick="toggleMap(true)">Map Thai</button>
+
+  <div id="mapSection">
+    <div style="display: flex; gap: 10px; flex-wrap: wrap; justify-content: center; margin-bottom: 10px;">
+  <button onclick="toggleMap(false)">ปิดแผนที่</button>
+</div>
+
+
+    <input type="text" id="province" placeholder="จังหวัด">
+    <input type="text" id="district" placeholder="อำเภอ">
+    <input type="text" id="subdistrict" placeholder="ตำบล">
+    <button onclick="searchLocation()">🔍 ค้นหาตำแหน่งจากชื่อ</button>
+
+    <input type="text" id="placeSearch" placeholder="ค้นหาสถานที่ เช่น ร้านอาหาร, ปั๊มน้ำมัน">
+    <button onclick="searchPlace()">🔍 ค้นหาร้านค้า / สถานที่</button>
+
+    <select id="vehicle">
+      <option value="car">🚗 รถยนต์</option>
+      <option value="motorcycle">🏍️ มอเตอร์ไซค์</option>
+      <option value="bicycle">🚲 จักรยาน</option>
+      <option value="walk">🚶 เดิน</option>
+    </select>
+
+    <button onclick="calculateRoute()">📍 คำนวณเส้นทาง</button>
+
+    <div id="map"></div>
+    <div id="result"></div>
+  </div>
+
+  <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+  <script>
+    let map, userMarker, destMarker;
+    let userCoords = null;
+
+    const speedMap = {
+      car: 60,
+      motorcycle: 50,
+      bicycle: 20,
+      walk: 5
+    };
+
+    function toggleMap(show) {
+      document.getElementById('mapSection').style.display = show ? 'flex' : 'none';
+      if (show && !map) initMap();
+    }
+
+    function initMap() {
+      map = L.map('map').setView([13.736717, 100.523186], 6);
+      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '&copy; OpenStreetMap contributors'
+      }).addTo(map);
+
+      navigator.geolocation.getCurrentPosition((pos) => {
+        userCoords = [pos.coords.latitude, pos.coords.longitude];
+        userMarker = L.marker(userCoords).addTo(map).bindPopup("ตำแหน่งของคุณ").openPopup();
+        map.setView(userCoords, 7);
+      });
+
+      map.on('click', function(e) {
+        if (destMarker) map.removeLayer(destMarker);
+        destMarker = L.marker(e.latlng).addTo(map).bindPopup("ปลายทาง").openPopup();
+      });
+    }
+
+    function toRad(deg) {
+      return deg * Math.PI / 180;
+    }
+
+    function vehicleLabel(key) {
+      return {
+        car: "รถยนต์",
+        motorcycle: "มอเตอร์ไซค์",
+        bicycle: "จักรยาน",
+        walk: "การเดินเท้า"
+      }[key];
+    }
+
+    function calculateRoute() {
+      if (!userCoords || !destMarker) {
+        alert("กรุณาปักหมุดปลายทางและเปิดตำแหน่ง");
+        return;
+      }
+
+      const start = userCoords;
+      const end = [destMarker.getLatLng().lat, destMarker.getLatLng().lng];
+
+      const R = 6371;
+      const dLat = toRad(end[0] - start[0]);
+      const dLon = toRad(end[1] - start[1]);
+      const lat1 = toRad(start[0]);
+      const lat2 = toRad(end[0]);
+
+      const a = Math.sin(dLat / 2) ** 2 +
+                Math.sin(dLon / 2) ** 2 * Math.cos(lat1) * Math.cos(lat2);
+      const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+      const distance = R * c;
+
+      const vehicle = document.getElementById("vehicle").value;
+      const speed = speedMap[vehicle];
+      const timeHours = distance / speed;
+      const hours = Math.floor(timeHours);
+      const minutes = Math.round((timeHours - hours) * 60);
+
+      document.getElementById("result").innerText =
+        `ระยะทาง: ${distance.toFixed(2)} กม.\nใช้เวลาโดย ${vehicleLabel(vehicle)} ≈ ${hours} ชั่วโมง ${minutes} นาที`;
+    }
+
+    function searchLocation() {
+      const province = document.getElementById("province").value;
+      const district = document.getElementById("district").value;
+      const subdistrict = document.getElementById("subdistrict").value;
+      const query = `${subdistrict} ${district} ${province}, Thailand`;
+
+      fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}`)
+        .then(res => res.json())
+        .then(data => {
+          if (data.length > 0) {
+            const latlng = [parseFloat(data[0].lat), parseFloat(data[0].lon)];
+            if (destMarker) map.removeLayer(destMarker);
+            destMarker = L.marker(latlng).addTo(map).bindPopup("ปลายทางจากชื่อ").openPopup();
+            map.setView(latlng, 13);
+          } else {
+            alert("ไม่พบสถานที่จากข้อมูลที่กรอก");
+          }
+        });
+    }
+
+    function searchPlace() {
+      const place = document.getElementById("placeSearch").value;
+      if (!place) return;
+
+      const query = `${place}, Thailand`;
+      fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}`)
+        .then(res => res.json())
+        .then(data => {
+          if (data.length > 0) {
+            const latlng = [parseFloat(data[0].lat), parseFloat(data[0].lon)];
+            if (destMarker) map.removeLayer(destMarker);
+            destMarker = L.marker(latlng).addTo(map).bindPopup(place).openPopup();
+            map.setView(latlng, 13);
+          } else {
+            alert("ไม่พบสถานที่");
+          }
+        });
+    }
+  </script>
+</body>
+</html>
